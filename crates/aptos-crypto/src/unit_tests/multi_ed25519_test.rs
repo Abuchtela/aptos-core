@@ -39,6 +39,15 @@ fn test_successful_public_key_serialization(original_keys: &[Ed25519PublicKey], 
     assert_eq!(serialized.len(), num_pks * ED25519_PUBLIC_KEY_LENGTH + 1);
     let reserialized = MultiEd25519PublicKey::try_from(&serialized[..]);
     assert!(reserialized.is_ok());
+    let mut num_deser = 0;
+    let mut num_small_order = 0;
+    assert!(MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &serialized[..],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, num_pks);
+    assert_eq!(num_small_order, num_pks);
     assert_eq!(public_key, reserialized.unwrap());
 }
 
@@ -98,33 +107,78 @@ fn test_multi_ed25519_public_key_serialization() {
     let multi_key_1of33 = MultiEd25519PublicKey::new(pub_keys_33, 1);
     test_failed_public_key_serialization(multi_key_1of33, WrongLengthError);
 
+    let mut num_deser = 0;
+    let mut num_small_order = 0;
+
     // Test try_from empty bytes (should fail).
     let multi_key_empty_bytes = MultiEd25519PublicKey::try_from(&[] as &[u8]);
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &[] as &[u8],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 0);
+    assert_eq!(num_small_order, 0);
     test_failed_public_key_serialization(multi_key_empty_bytes, WrongLengthError);
 
     // Test try_from 1 byte (should fail).
     let multi_key_1_byte = MultiEd25519PublicKey::try_from(&[0u8][..]);
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &[0u8] as &[u8],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 0);
+    assert_eq!(num_small_order, 0);
     test_failed_public_key_serialization(multi_key_1_byte, WrongLengthError);
 
     // Test try_from 31 bytes (should fail).
     let multi_key_31_bytes =
         MultiEd25519PublicKey::try_from(&[0u8; ED25519_PUBLIC_KEY_LENGTH - 1][..]);
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &[0u8; ED25519_PUBLIC_KEY_LENGTH - 1][..],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 0);
+    assert_eq!(num_small_order, 0);
     test_failed_public_key_serialization(multi_key_31_bytes, WrongLengthError);
 
     // Test try_from 32 bytes (should fail) because we always need ED25519_PUBLIC_KEY_LENGTH * N + 1
     // bytes (thus 32N + 1).
     let multi_key_32_bytes = MultiEd25519PublicKey::try_from(&[0u8; ED25519_PUBLIC_KEY_LENGTH][..]);
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &[0u8; ED25519_PUBLIC_KEY_LENGTH][..],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 0);
+    assert_eq!(num_small_order, 0);
     test_failed_public_key_serialization(multi_key_32_bytes, WrongLengthError);
 
     // Test try_from 34 bytes (should fail).
     let multi_key_34_bytes =
         MultiEd25519PublicKey::try_from(&[0u8; ED25519_PUBLIC_KEY_LENGTH + 2][..]);
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &[0u8; ED25519_PUBLIC_KEY_LENGTH + 2][..],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 0);
+    assert_eq!(num_small_order, 0);
     test_failed_public_key_serialization(multi_key_34_bytes, WrongLengthError);
 
     // Test try_from 33 all zero bytes (size is fine, but it should fail due to
     // validation issues).
     let multi_key_33_zero_bytes =
         MultiEd25519PublicKey::try_from(&[0u8; ED25519_PUBLIC_KEY_LENGTH + 1][..]);
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &[0u8; ED25519_PUBLIC_KEY_LENGTH + 1][..],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 0); // all 33 bytes are zero => threshold is 0 => invalid multisig PK dismissed early
+    assert_eq!(num_small_order, 0);
     test_failed_public_key_serialization(multi_key_33_zero_bytes, ValidationError);
 
     let priv_keys_10 = generate_keys(10);
@@ -164,7 +218,18 @@ fn test_publickey_smallorder() {
         0, 0, 1,
     ];
 
+    let mut num_deser = 0;
+    let mut num_small_order = 0;
+    assert!(!MultiEd25519PublicKey::validate_bytes_and_count_checks(
+        &torsion_point_with_threshold_1[..],
+        &mut num_deser,
+        &mut num_small_order
+    ));
+    assert_eq!(num_deser, 1);
+    assert_eq!(num_small_order, 1);
+
     let torsion_key = MultiEd25519PublicKey::try_from(&torsion_point_with_threshold_1[..]);
+
     assert!(torsion_key.is_err());
     assert_eq!(
         torsion_key.err().unwrap(),
