@@ -48,7 +48,7 @@ impl Default for ExecutionConfig {
             genesis_file_location: PathBuf::new(),
             // Parallel execution by default.
             concurrency_level: 16,
-            num_proof_reading_threads: 16gi,
+            num_proof_reading_threads: 16,
             paranoid_type_verification: true,
             paranoid_hot_potato_verification: true,
             processed_transactions_detailed_counters: false,
