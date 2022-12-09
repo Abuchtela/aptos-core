@@ -28,6 +28,7 @@ use crate::{
         APTOS_EXECUTOR_VM_EXECUTE_BLOCK_SECONDS,
     },
 };
+use storage_interface::sync_proof_fetcher::SyncProofFetcher;
 use storage_interface::DbReaderWriter;
 
 pub struct BlockExecutor<V> {
@@ -189,7 +190,7 @@ where
             let state_view = parent_view.verified_state_view(
                 StateViewId::BlockExecution { block_id },
                 Arc::clone(&self.db.reader),
-                Arc::new(AsyncProofFetcher::new(self.db.reader.clone())),
+                Arc::new(SyncProofFetcher::new(self.db.reader.clone())),
             )?;
 
             let chunk_output = {
