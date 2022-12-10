@@ -4,6 +4,7 @@
 use crate::data_cache::{IntoMoveResolver, StorageAdapterOwned};
 use aptos_aggregator::delta_change_set::{deserialize, serialize};
 use aptos_block_executor::executor::{MVHashMapView, ReadResult};
+use aptos_metrics_core::{register_histogram, Histogram};
 use aptos_state_view::{StateView, StateViewId};
 use aptos_types::state_store::state_storage_usage::StateStorageUsage;
 use aptos_types::{
@@ -12,6 +13,15 @@ use aptos_types::{
     write_set::WriteOp,
 };
 use move_binary_format::errors::Location;
+use once_cell::sync::Lazy;
+
+pub static VERSIONED_VIEW_GET_STATE_VALUE: Lazy<Histogram> = Lazy::new(|| {
+    register_histogram!(
+        "versioned_view_get_state_val",
+        "Number of transactions per block"
+    )
+    .unwrap()
+});
 
 pub(crate) struct VersionedView<'a, S: StateView> {
     base_view: &'a S,
@@ -38,6 +48,7 @@ impl<'a, S: StateView> StateView for VersionedView<'a, S> {
 
     // Get some data either through the cache or the `StateView` on a cache miss.
     fn get_state_value(&self, state_key: &StateKey) -> anyhow::Result<Option<Vec<u8>>> {
+        let _timer = VERSIONED_VIEW_GET_STATE_VALUE.start_timer();
         match self.hashmap_view.read(state_key) {
             ReadResult::Value(v) => Ok(match v.as_ref() {
                 WriteOp::Modification(w) | WriteOp::Creation(w) => Some(w.clone()),
