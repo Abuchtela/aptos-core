@@ -142,6 +142,7 @@ impl LocalSwarm {
                     if number_of_validators.get() == 1 {
                         // this delays empty block by (30-1) * 30ms
                         config.consensus.quorum_store_poll_count = 30;
+                        config.state_sync.state_sync_driver.enable_auto_bootstrapping = true;
                         config
                             .state_sync
                             .state_sync_driver

@@ -32,6 +32,7 @@ pub async fn create_swarm(num_nodes: usize, max_block_txns: u64) -> LocalSwarm {
             config.consensus.round_timeout_backoff_exponent_base = 1.0;
             // empty block generated automatically every ~half a second
             config.consensus.quorum_store_poll_count = 15;
+            config.state_sync.state_sync_driver.enable_auto_bootstrapping = true;
             config
                 .state_sync
                 .state_sync_driver
