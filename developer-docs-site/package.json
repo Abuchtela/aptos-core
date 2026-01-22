@@ -30,7 +30,7 @@
     "@mdx-js/react": "1.6.22",
     "@stoplight/elements": "^7.7.3",
     "@types/prop-types": "^15.7.5",
-    "@types/react": "^18.0.25",
+    "@types/react": "^18.3.27",
     "buffer": "^6.0.3",
     "clsx": "1.2.1",
     "hast-util-is-element": "1.1.0",
